@@ -4,7 +4,7 @@ import (
 	"chat/internal/entities"
 	"chat/internal/repository"
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 )
 
@@ -30,11 +30,11 @@ func (c *chatSvc) CreateChat(ctx context.Context, title string) (*entities.Chat,
 	title = strings.TrimSpace(title)
 
 	if title == "" {
-		return nil, fmt.Errorf("chat title is empty")
+		return nil, ErrEmptyTitle
 	}
 
 	if len(title) > 200 {
-		return nil, fmt.Errorf("chat title exceeds 200 characters")
+		return nil, ErrTitleTooLong
 	}
 
 	chat := &entities.Chat{
@@ -52,6 +52,9 @@ func (c *chatSvc) CreateChat(ctx context.Context, title string) (*entities.Chat,
 func (c *chatSvc) GetByID(ctx context.Context, id, limit int) (*entities.Chat, error) {
 	chat, err := c.chatRepo.GetByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, repository.ErrChatNotFound) {
+			return nil, ErrChatNotFound
+		}
 		return nil, err
 	}
 
@@ -66,5 +69,10 @@ func (c *chatSvc) GetByID(ctx context.Context, id, limit int) (*entities.Chat, e
 }
 
 func (c *chatSvc) Delete(ctx context.Context, id int) error {
-	return c.chatRepo.Delete(ctx, id)
+	err := c.chatRepo.Delete(ctx, id)
+	if errors.Is(err, repository.ErrChatNotFound) {
+		return ErrChatNotFound
+	}
+
+	return err
 }

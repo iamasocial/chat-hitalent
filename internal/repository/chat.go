@@ -4,7 +4,7 @@ import (
 	"chat/internal/db/models"
 	"chat/internal/entities"
 	"context"
-	"fmt"
+	"errors"
 
 	"gorm.io/gorm"
 )
@@ -42,12 +42,13 @@ func (c *chatRepo) Create(ctx context.Context, chat *entities.Chat) (*entities.C
 }
 
 func (c *chatRepo) GetByID(ctx context.Context, id int) (*entities.Chat, error) {
-	model := &models.ChatModel{
-		ID: id,
-	}
+	model := &models.ChatModel{}
 
 	if err := c.db.WithContext(ctx).First(model, id).Error; err != nil {
-		return nil, fmt.Errorf("failed to get chat by ID: %v", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrChatNotFound
+		}
+		return nil, err
 	}
 
 	chat := &entities.Chat{
@@ -60,8 +61,13 @@ func (c *chatRepo) GetByID(ctx context.Context, id int) (*entities.Chat, error) 
 }
 
 func (c *chatRepo) Delete(ctx context.Context, id int) error {
-	if err := c.db.Delete(&models.ChatModel{}, id); err != nil {
-		return err.Error
+	res := c.db.Delete(&models.ChatModel{}, id)
+	if res.Error != nil {
+		return res.Error
+	}
+
+	if res.RowsAffected == 0 {
+		return ErrChatNotFound
 	}
 
 	return nil

@@ -27,9 +27,5 @@ func NewPostgres(cfg *config.DB) (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
-	// if err := db.AutoMigrate(&models.ChatModel{}, &models.MessageModel{}); err != nil {
-	// 	return nil, fmt.Errorf("automigration failed: %w", err)
-	// }
-
 	return db, nil
 }

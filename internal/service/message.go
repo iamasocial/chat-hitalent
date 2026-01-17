@@ -4,7 +4,7 @@ import (
 	"chat/internal/entities"
 	"chat/internal/repository"
 	"context"
-	"fmt"
+	"errors"
 )
 
 type MessageService interface {
@@ -21,11 +21,11 @@ func NewMessageService(repo repository.MessageRepository) MessageService {
 
 func (m *msgSvc) Send(ctx context.Context, chatID int, text string) (*entities.Message, error) {
 	if text == "" {
-		return nil, fmt.Errorf("message cannot be empty")
+		return nil, ErrEmptyMessage
 	}
 
 	if len(text) > 5000 {
-		return nil, fmt.Errorf("message exceeds 5000 characters")
+		return nil, ErrMessageTooLong
 	}
 
 	msg := &entities.Message{
@@ -35,7 +35,9 @@ func (m *msgSvc) Send(ctx context.Context, chatID int, text string) (*entities.M
 
 	created, err := m.msgRepo.Create(ctx, msg)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, ErrChatNotFound) {
+			return nil, ErrChatNotFound
+		}
 	}
 
 	return created, nil

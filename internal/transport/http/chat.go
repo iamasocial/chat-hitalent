@@ -4,6 +4,7 @@ import (
 	"chat/internal/service"
 	"chat/internal/transport/http/dto"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -21,13 +22,19 @@ func NewChatHandler(svc service.ChatService) *ChatHandler {
 func (c *ChatHandler) CreateChat(w http.ResponseWriter, r *http.Request) {
 	var req dto.CreateChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "invalid json", http.StatusBadRequest)
 		return
 	}
 
 	chat, err := c.chatSvc.CreateChat(r.Context(), req.Title)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		switch {
+		case errors.Is(err, service.ErrEmptyTitle),
+			errors.Is(err, service.ErrTitleTooLong):
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		default:
+			http.Error(w, "internal error", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -48,7 +55,7 @@ func (c *ChatHandler) GetChatByID(w http.ResponseWriter, r *http.Request) {
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "invalid chat id", http.StatusBadRequest)
 		return
 	}
 
@@ -60,7 +67,7 @@ func (c *ChatHandler) GetChatByID(w http.ResponseWriter, r *http.Request) {
 	default:
 		limit, err = strconv.Atoi(limitStr)
 		if err != nil {
-			http.Error(w, "ivalid limit parameter", http.StatusBadRequest)
+			http.Error(w, "invalid limit", http.StatusBadRequest)
 			return
 		}
 
@@ -71,7 +78,12 @@ func (c *ChatHandler) GetChatByID(w http.ResponseWriter, r *http.Request) {
 
 	chat, err := c.chatSvc.GetByID(r.Context(), id, limit)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		switch {
+		case errors.Is(err, service.ErrChatNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
+		default:
+			http.Error(w, "internal error", http.StatusInternalServerError)
+		}
 		return
 	}
 
@@ -103,12 +115,17 @@ func (c *ChatHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "invalid chat id", http.StatusBadRequest)
 		return
 	}
 
 	if err := c.chatSvc.Delete(r.Context(), id); err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		switch {
+		case errors.Is(err, service.ErrChatNotFound):
+			http.Error(w, err.Error(), http.StatusNotFound)
+		default:
+			http.Error(w, "internal error", http.StatusInternalServerError)
+		}
 		return
 	}
 
