@@ -9,7 +9,7 @@ type Service struct {
 
 func NewService(repo *repository.Repository) *Service {
 	return &Service{
-		ChatService:    NewChatService(repo.ChatRepository),
+		ChatService:    NewChatService(repo.ChatRepository, repo.MessageRepository),
 		MessageService: NewMessageService(repo.MessageRepository),
 	}
 }

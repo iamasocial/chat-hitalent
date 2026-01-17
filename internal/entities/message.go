@@ -3,8 +3,8 @@ package entities
 import "time"
 
 type Message struct {
-	ID        int64
-	ChatID    int64
+	ID        int
+	ChatID    int
 	Text      string
 	CreatedAt time.Time
 }

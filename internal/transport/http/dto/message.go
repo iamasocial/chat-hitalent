@@ -3,7 +3,7 @@ package dto
 import "time"
 
 type SendMessageRequest struct {
-	Title string `json:"title"`
+	Text string `json:"text"`
 }
 
 type MessageResponse struct {
